@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CricLive — Live Cricket Scores</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --bg2: #111827;
+    --bg3: #1a2235;
+    --card: #141c2e;
+    --card2: #1e2a40;
+    --border: rgba(255,255,255,0.07);
+    --accent: #00e5a0;
+    --accent2: #00b8ff;
+    --accent3: #ff6b35;
+    --live: #ff3d5a;
+    --text: #f0f4ff;
+    --text2: #8896b3;
+    --text3: #4a5a78;
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+    --radius: 16px;
+    --glow: 0 0 30px rgba(0,229,160,0.15);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background mesh */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 10% 0%, rgba(0,229,160,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 90% 100%, rgba(0,184,255,0.05) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,14,26,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+  }
+
+  .header-inner {
+    max-width: 900px;
+    margin: 0 auto;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-icon {
+    width: 34px; height: 34px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+
+  .logo-text {
+    font-family: var(--font-display);
+    font-size: 26px;
+    letter-spacing: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,61,90,0.12);
+    border: 1px solid rgba(255,61,90,0.3);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--live);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .live-dot {
+    width: 7px; height: 7px;
+    background: var(--live);
+    border-radius: 50%;
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  /* ── TABS ── */
+  .tabs {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px 20px 0;
+    display: flex;
+    gap: 8px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .tab {
+    padding: 8px 20px;
+    border-radius: 30px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text2);
+  }
+
+  .tab.active {
+    background: linear-gradient(135deg, rgba(0,229,160,0.15), rgba(0,184,255,0.1));
+    border-color: rgba(0,229,160,0.4);
+    color: var(--accent);
+  }
+
+  .tab:hover:not(.active) {
+    background: var(--card);
+    color: var(--text);
+  }
+
+  /* ── MAIN CONTENT ── */
+  .main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── LOADING ── */
+  .loading-state {
+    text-align: center;
+    padding: 80px 20px;
+  }
+
+  .spinner {
+    width: 48px; height: 48px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 20px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    color: var(--text2);
+    font-size: 14px;
+    letter-spacing: 1px;
+  }
+
+  /* ── ERROR ── */
+  .error-state {
+    text-align: center;
+    padding: 60px 20px;
+  }
+
+  .error-icon { font-size: 48px; margin-bottom: 16px; }
+
+  .error-msg {
+    color: var(--text2);
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+
+  .retry-btn {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none;
+    color: #000;
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 13px;
+    padding: 10px 28px;
+    border-radius: 30px;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: opacity 0.2s;
+  }
+
+  .retry-btn:hover { opacity: 0.85; }
+
+  /* ── SECTION HEADER ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-family: var(--font-display);
+    font-size: 22px;
+    letter-spacing: 2px;
+    color: var(--text);
+  }
+
+  .match-count {
+    font-size: 12px;
+    color: var(--text3);
+    font-family: var(--font-mono);
+  }
+
+  /* ── MATCH CARD ── */
+  .matches-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .match-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    cursor: pointer;
+    transition: all 0.25s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .match-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--text3);
+    border-radius: 4px 0 0 4px;
+    transition: background 0.25s;
+  }
+
+  .match-card.live::before { background: var(--live); }
+  .match-card.completed::before { background: var(--accent); }
+
+  .match-card:hover {
+    background: var(--card2);
+    border-color: rgba(0,229,160,0.2);
+    transform: translateY(-2px);
+    box-shadow: var(--glow);
+  }
+
+  .match-card:active { transform: translateY(0); }
+
+  .card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .match-series {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text3);
+    font-family: var(--font-mono);
+  }
+
+  .match-status-badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+
+  .badge-live {
+    background: rgba(255,61,90,0.12);
+    color: var(--live);
+    border: 1px solid rgba(255,61,90,0.25);
+    display: flex; align-items: center; gap: 5px;
+  }
+
+  .badge-completed {
+    background: rgba(0,229,160,0.08);
+    color: var(--accent);
+    border: 1px solid rgba(0,229,160,0.2);
+  }
+
+  .badge-upcoming {
+    background: rgba(136,150,179,0.08);
+    color: var(--text2);
+    border: 1px solid var(--border);
+  }
+
+  .match-teams {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+    line-height: 1.4;
+  }
+
+  .match-meta {
+    font-size: 12px;
+    color: var(--text2);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .meta-dot {
+    width: 3px; height: 3px;
+    background: var(--text3);
+    border-radius: 50%;
+  }
+
+  .view-arrow {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text3);
+    font-size: 18px;
+    transition: all 0.2s;
+  }
+
+  .match-card:hover .view-arrow {
+    color: var(--accent);
+    right: 16px;
+  }
+
+  /* ── SCORE DETAIL VIEW ── */
+  .score-view { display: none; }
+  .score-view.active { display: block; }
+
+  .back-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    color: var(--text2);
+    font-family: var(--font-body);
+    font-size: 14px;
+    cursor: pointer;
+    padding: 0;
+    margin-bottom: 24px;
+    transition: color 0.2s;
+  }
+
+  .back-btn:hover { color: var(--accent); }
+
+  /* Score Hero Card */
+  .score-hero {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .hero-header {
+    background: linear-gradient(135deg, rgba(0,229,160,0.08), rgba(0,184,255,0.05));
+    border-bottom: 1px solid var(--border);
+    padding: 20px;
+  }
+
+  .hero-series {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-family: var(--font-mono);
+    margin-bottom: 8px;
+  }
+
+  .hero-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.4;
+  }
+
+  .hero-body {
+    padding: 24px 20px;
+  }
+
+  .score-display {
+    margin-bottom: 20px;
+  }
+
+  .score-main {
+    font-family: var(--font-display);
+    font-size: 52px;
+    letter-spacing: 3px;
+    color: var(--text);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .score-main span {
+    background: linear-gradient(90deg, var(--text), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .score-rr {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  .score-update {
+    font-size: 14px;
+    color: var(--text2);
+    background: rgba(255,255,255,0.04);
+    border-radius: 10px;
+    padding: 10px 14px;
+    border-left: 3px solid var(--accent3);
+    line-height: 1.5;
+  }
+
+  /* Stats grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text3);
+    font-family: var(--font-mono);
+    margin-bottom: 10px;
+  }
+
+  .batter-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .batter-row:last-child { border-bottom: none; }
+
+  .batter-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    max-width: 110px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .batter-score {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--accent);
+  }
+
+  .batter-balls {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text3);
+  }
+
+  /* All scores list */
+  .all-scores-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .score-chip {
+    display: inline-block;
+    background: rgba(0,229,160,0.08);
+    border: 1px solid rgba(0,229,160,0.15);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--accent);
+    margin: 4px;
+  }
+
+  /* Refresh button */
+  .refresh-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  .refresh-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--card2);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 10px 22px;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .refresh-btn:hover {
+    border-color: rgba(0,229,160,0.3);
+    color: var(--accent);
+  }
+
+  .refresh-btn.spinning svg { animation: spin 0.8s linear infinite; }
+
+  .last-updated {
+    font-size: 11px;
+    color: var(--text3);
+    font-family: var(--font-mono);
+  }
+
+  /* ── BOTTOM NAV ── */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(10,14,26,0.95);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    padding: 10px 0 16px;
+    z-index: 100;
+    display: flex;
+    justify-content: space-around;
+  }
+
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    padding: 4px 20px;
+    border-radius: 12px;
+    transition: all 0.2s;
+    color: var(--text3);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .nav-item.active { color: var(--accent); }
+  .nav-item svg { width: 22px; height: 22px; }
+
+  /* ── PADDINGS ── */
+  .main { padding-bottom: 90px; }
+
+  /* ── ANIMATIONS ── */
+  .fade-in {
+    animation: fadeIn 0.4s ease forwards;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .card-enter {
+    animation: cardEnter 0.35s ease forwards;
+    opacity: 0;
+  }
+
+  @keyframes cardEnter {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text2);
+  }
+
+  .empty-icon { font-size: 56px; margin-bottom: 16px; }
+  .empty-title { font-family: var(--font-display); font-size: 24px; letter-spacing: 2px; margin-bottom: 8px; }
+  .empty-sub { font-size: 13px; color: var(--text3); }
+
+  /* ── AUTO REFRESH INDICATOR ── */
+  .auto-refresh {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text3);
+    font-family: var(--font-mono);
+    margin-bottom: 16px;
+  }
+
+  .auto-dot {
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--text3); border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">🏏</div>
+      <span class="logo-text">CRICLIVE</span>
+    </div>
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      LIVE
+    </div>
+  </div>
+</header>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="showTab('live')">Live</button>
+  <button class="tab" onclick="showTab('recent')">Recent</button>
+  <button class="tab" onclick="showTab('upcoming')">Upcoming</button>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- MATCHES VIEW -->
+  <div id="matches-view">
+    <div class="auto-refresh">
+      <div class="auto-dot"></div>
+      Auto-refreshes every 30s
+    </div>
+
+    <div class="section-header">
+      <div class="section-title">MATCHES</div>
+      <div class="match-count" id="match-count">— matches</div>
+    </div>
+
+    <div id="matches-container">
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <div class="loading-text">FETCHING LIVE MATCHES...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCORE VIEW -->
+  <div id="score-view" class="score-view">
+    <button class="back-btn" onclick="goBack()">
+      ← Back to matches
+    </button>
+    <div id="score-container">
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <div class="loading-text">LOADING SCORE...</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <div class="nav-item active" onclick="navClick(this, 'matches')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20M2 12h20M12 2c-3 5-3 13 0 20M12 2c3 5 3 13 0 20"/>
+    </svg>
+    Scores
+  </div>
+  <div class="nav-item" onclick="navClick(this, 'search')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+    </svg>
+    Search
+  </div>
+  <div class="nav-item" onclick="navClick(this, 'news')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a4 4 0 0 1-4-4V6"/><path d="M2 13.5A2.5 2.5 0 0 0 4.5 16H6"/>
+    </svg>
+    News
+  </div>
+  <div class="nav-item" onclick="navClick(this, 'settings')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+    </svg>
+    Settings
+  </div>
+</div>
+
+<script>
+// ── CONFIG ──
+const API = 'https://cricket-api-psi-six.vercel.app';
+let currentMatchId = null;
+let refreshTimer = null;
+let lastUpdated = null;
+
+// ── FETCH MATCHES ──
+async function fetchMatches() {
+  try {
+    const res = await fetch(`${API}/matches`);
+    const data = await res.json();
+    return data.matches || [];
+  } catch(e) {
+    return null;
+  }
+}
+
+// ── FETCH SCORE ──
+async function fetchScore(id) {
+  try {
+    const res = await fetch(`${API}/score?id=${id}`);
+    return await res.json();
+  } catch(e) {
+    return null;
+  }
+}
+
+// ── PARSE MATCH INFO ──
+function parseMatch(m) {
+  const title = m.title || '';
+  const lower = title.toLowerCase();
+  let status = 'upcoming';
+  if (lower.includes('won') || lower.includes('result') || lower.includes('draw')) status = 'completed';
+  else if (lower.includes('live') || lower.includes('preview') || lower.includes('vs')) status = 'live';
+
+  // Extract teams
+  let teams = title.replace(/-.*$/, '').trim();
+  teams = teams.replace(/([a-z])([A-Z])/g, '$1 $2');
+
+  // Extract series/format
+  let series = '';
+  if (lower.includes('ipl') || lower.includes('indian premier')) series = 'IPL 2026';
+  else if (lower.includes('t20i')) series = 'T20 International';
+  else if (lower.includes('odi')) series = 'One Day International';
+  else if (lower.includes('test')) series = 'Test Match';
+  else if (lower.includes('wpl')) series = 'WPL 2026';
+  else series = 'Cricket Match';
+
+  return { ...m, status, teams, series };
+}
+
+// ── RENDER MATCHES ──
+function renderMatches(matches) {
+  const container = document.getElementById('matches-container');
+  document.getElementById('match-count').textContent = `${matches.length} matches`;
+
+  if (!matches.length) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🏏</div>
+        <div class="empty-title">NO MATCHES</div>
+        <div class="empty-sub">Check back soon for live scores</div>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = `<div class="matches-grid fade-in"></div>`;
+  const grid = container.querySelector('.matches-grid');
+
+  matches.forEach((m, i) => {
+    const p = parseMatch(m);
+    const statusBadge = p.status === 'live'
+      ? `<span class="match-status-badge badge-live"><span class="live-dot" style="width:5px;height:5px"></span>LIVE</span>`
+      : p.status === 'completed'
+      ? `<span class="match-status-badge badge-completed">RESULT</span>`
+      : `<span class="match-status-badge badge-upcoming">UPCOMING</span>`;
+
+    const result = p.title.includes('won') ? p.title.split('-').slice(-1)[0].trim() : '';
+
+    const card = document.createElement('div');
+    card.className = `match-card ${p.status} card-enter`;
+    card.style.animationDelay = `${i * 0.05}s`;
+    card.innerHTML = `
+      <div class="card-top">
+        <span class="match-series">${p.series}</span>
+        ${statusBadge}
+      </div>
+      <div class="match-teams">${p.teams}</div>
+      <div class="match-meta">
+        <span>ID: ${p.id}</span>
+        ${result ? `<span class="meta-dot"></span><span>${result}</span>` : ''}
+      </div>
+      <div class="view-arrow">›</div>
+    `;
+    card.onclick = () => openScore(p.id, p.teams);
+    grid.appendChild(card);
+  });
+}
+
+// ── OPEN SCORE ──
+async function openScore(id, title) {
+  currentMatchId = id;
+  document.getElementById('matches-view').style.display = 'none';
+  const sv = document.getElementById('score-view');
+  sv.classList.add('active');
+  sv.style.display = 'block';
+
+  document.getElementById('score-container').innerHTML = `
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <div class="loading-text">LOADING SCORE...</div>
+    </div>`;
+
+  const data = await fetchScore(id);
+  if (!data) {
+    document.getElementById('score-container').innerHTML = `
+      <div class="error-state">
+        <div class="error-icon">⚠️</div>
+        <div class="error-msg">Failed to load score. Try again.</div>
+        <button class="retry-btn" onclick="openScore('${id}','${title}')">RETRY</button>
+      </div>`;
+    return;
+  }
+
+  renderScore(data, id);
+  startScoreRefresh(id, title);
+}
+
+// ── RENDER SCORE ──
+function renderScore(data, id) {
+  lastUpdated = new Date();
+  const timeStr = lastUpdated.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+
+  const livescore = data.livescore || 'N/A';
+  const update = data.update || '';
+  const runrate = data.runrate || '';
+  const title = data.title || 'Match Score';
+  const allScores = data.all_scores || [];
+
+  // Parse series from title
+  let series = 'Cricket Match';
+  const tl = title.toLowerCase();
+  if (tl.includes('ipl') || tl.includes('premier league')) series = 'IPL 2026';
+  else if (tl.includes('t20')) series = 'T20';
+  else if (tl.includes('odi')) series = 'ODI';
+  else if (tl.includes('test')) series = 'TEST';
+
+  // Batters
+  let battersHTML = '';
+  if (data.batterone && data.batterone !== 'N/A') {
+    battersHTML += `
+      <div class="batter-row">
+        <span class="batter-name">${data.batterone}</span>
+        <span class="batter-score">${data.batsmanonerun || '-'}</span>
+        <span class="batter-balls">${data.batsmanoneball || ''}</span>
+      </div>`;
+  }
+  if (data.battertwo && data.battertwo !== 'N/A') {
+    battersHTML += `
+      <div class="batter-row">
+        <span class="batter-name">${data.battertwo}</span>
+        <span class="batter-score">${data.batsmantworun || '-'}</span>
+        <span class="batter-balls">${data.batsmantwoball || ''}</span>
+      </div>`;
+  }
+
+  // All scores chips
+  let chipsHTML = allScores.filter(s => s && s !== 'N/A').map(s =>
+    `<span class="score-chip">${s}</span>`
+  ).join('');
+
+  document.getElementById('score-container').innerHTML = `
+    <div class="fade-in">
+
+      <!-- Hero -->
+      <div class="score-hero">
+        <div class="hero-header">
+          <div class="hero-series">${series}</div>
+          <div class="hero-title">${title.replace(' - Commentary','').replace(' - Live Cricket Score','')}</div>
+        </div>
+        <div class="hero-body">
+          <div class="score-display">
+            <div class="score-main"><span>${livescore !== 'N/A' ? livescore : '— / —'}</span></div>
+            ${runrate !== 'N/A' && runrate ? `<div class="score-rr">${runrate}</div>` : ''}
+            ${update !== 'N/A' && update ? `<div class="score-update">${update}</div>` : ''}
+          </div>
+        </div>
+      </div>
+
+      <!-- Batters -->
+      ${battersHTML ? `
+      <div class="stats-grid">
+        <div class="stat-card" style="grid-column: 1/-1;">
+          <div class="stat-label">AT THE CREASE</div>
+          ${battersHTML}
+        </div>
+      </div>` : ''}
+
+      <!-- All Scores -->
+      ${chipsHTML ? `
+      <div class="all-scores-card">
+        <div class="stat-label" style="margin-bottom:8px">ALL SCORES</div>
+        ${chipsHTML}
+      </div>` : ''}
+
+      <!-- Refresh -->
+      <div class="refresh-row">
+        <button class="refresh-btn" id="refresh-btn" onclick="refreshScore()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+          </svg>
+          Refresh
+        </button>
+        <span class="last-updated">Updated ${timeStr}</span>
+      </div>
+
+    </div>`;
+}
+
+// ── REFRESH SCORE ──
+async function refreshScore() {
+  if (!currentMatchId) return;
+  const btn = document.getElementById('refresh-btn');
+  if (btn) btn.classList.add('spinning');
+  const data = await fetchScore(currentMatchId);
+  if (data) renderScore(data, currentMatchId);
+  if (btn) btn.classList.remove('spinning');
+}
+
+// ── AUTO REFRESH ──
+function startScoreRefresh(id, title) {
+  clearInterval(refreshTimer);
+  refreshTimer = setInterval(() => {
+    if (currentMatchId === id) refreshScore();
+  }, 30000);
+}
+
+// ── GO BACK ──
+function goBack() {
+  clearInterval(refreshTimer);
+  currentMatchId = null;
+  document.getElementById('score-view').classList.remove('active');
+  document.getElementById('score-view').style.display = 'none';
+  document.getElementById('matches-view').style.display = 'block';
+}
+
+// ── TABS ──
+function showTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  // All tabs show same matches for now (can be filtered)
+  loadMatches();
+}
+
+// ── BOTTOM NAV ──
+function navClick(el, section) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  if (section === 'search') {
+    const id = prompt('Enter Match ID (from /matches):');
+    if (id) openScore(id, 'Match #' + id);
+  }
+}
+
+// ── LOAD MATCHES ──
+async function loadMatches() {
+  document.getElementById('matches-container').innerHTML = `
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <div class="loading-text">FETCHING LIVE MATCHES...</div>
+    </div>`;
+
+  const matches = await fetchMatches();
+  if (!matches) {
+    document.getElementById('matches-container').innerHTML = `
+      <div class="error-state">
+        <div class="error-icon">📡</div>
+        <div class="error-msg">Could not connect to API. Check your connection.</div>
+        <button class="retry-btn" onclick="loadMatches()">RETRY</button>
+      </div>`;
+    return;
+  }
+  renderMatches(matches);
+}
+
+// ── AUTO REFRESH MATCHES ──
+setInterval(() => {
+  if (!currentMatchId) loadMatches();
+}, 30000);
+
+// ── INIT ──
+loadMatches();
+</script>
+</body>
+</html>
